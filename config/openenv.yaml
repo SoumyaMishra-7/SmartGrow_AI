@@ -1,0 +1,20 @@
+{
+  "name": "SmartGrowEnv",
+  "description": "Plant growth simulator with discrete care actions and compact bucketed observations.",
+  "observation_fields": [
+    "soil_moisture",
+    "nutrients",
+    "temperature",
+    "humidity",
+    "light",
+    "growth",
+    "health",
+    "energy_reserve"
+  ],
+  "action_count": 8,
+  "termination": {
+    "max_days_reached": true,
+    "harvest_ready_growth": 1.0,
+    "health_floor": 0.15
+  }
+}

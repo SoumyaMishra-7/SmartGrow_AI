@@ -1,0 +1,7 @@
+DEPENDENCIES = [
+    "matplotlib>=3.8",
+    "pandas>=2.0",
+    "pytest>=8.0",
+    "PyYAML>=6.0",
+    "streamlit>=1.33",
+]
