@@ -1,0 +1,7 @@
+agent:
+  type: q_learning
+  learning_rate: 0.18
+  discount: 0.94
+  epsilon: 1.0
+  epsilon_decay: 0.985
+  epsilon_min: 0.05

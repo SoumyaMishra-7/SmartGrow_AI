@@ -1,0 +1,3 @@
+scenario: balanced
+max_days: 30
+seed: 7
