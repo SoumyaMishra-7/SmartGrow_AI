@@ -1,68 +1,156 @@
 # SmartGrow AI
 
-SmartGrow AI is a lightweight plant-care simulator with a tabular reinforcement-learning agent, a CLI training loop, and a Streamlit dashboard for visualizing plant growth over time.
+Deterministic, explainable baseline system for a single-plant OpenEnv-style control task.
 
-## Project Layout
+## Problem Statement
 
-- `env/`: simulation state, weather, reward, and environment adapter code
-- `agent/`: tabular DQN-style agent, policy, replay buffer, and baseline agent
-- `training/`: training config, training loop, and evaluation
-- `tasks/`: scenario and benchmark task definitions
-- `ui/`: terminal report helpers and Streamlit dashboard
-- `config/`: runtime defaults loaded by the CLI and dashboard
-- `config/openenv.yaml`: explicit OpenEnv spec artifact
-- `tests/`: regression tests for env, reward, config loading, and adapter behavior
+Build an AI policy that maximizes plant growth while preserving health under constrained resource dynamics. The controller must remain stable over time, avoid over-correction, and be fully reproducible for grading.
 
-## Setup
+## Environment Design
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\activate
-pip install -r requirements.txt
+The contract-compliant environment is implemented in `env/spec_env.py` as `SpecPlantEnv`.
+
+State:
+
+```json
+{
+	"water_level": "0-100",
+	"sunlight": "0-100",
+	"plant_health": "0-100",
+	"growth_stage": "0-5"
+}
 ```
 
-## Run Training From CLI
+Dynamics per step:
 
-```powershell
-.\.venv\Scripts\python main.py
+- `water_level -= 5`
+- `sunlight -= 5`
+- Action can increase only one resource at a time
+- Health improves when water and sunlight are both in optimal range `[40, 70]`
+- Health drops when outside optimal range
+
+Termination:
+
+- `growth_stage >= 5`, or
+- `plant_health <= 0`, or
+- max step horizon reached
+
+## Action Space
+
+- `0`: Do nothing
+- `1`: Add water (`+10 water_level`)
+- `2`: Increase sunlight (`+10 sunlight`)
+
+## Observation Space
+
+Each step returns:
+
+```json
+{
+	"water_level": 0,
+	"sunlight": 0,
+	"plant_health": 0,
+	"growth_stage": 0
+}
 ```
 
-You can override runtime parameters:
+All values are deterministic integer updates.
 
-```powershell
-.\.venv\Scripts\python main.py --scenario hot_dry --episodes 120 --days 40 --seed 11
+## Reward Function
+
+Reward is deterministic and combines:
+
+- growth progress reward
+- plant health delta reward
+- small action-efficiency penalty for non-zero actions
+
+This supports policy stability and reduced unnecessary interventions.
+
+## Tasks (Easy / Medium / Hard)
+
+Deterministic benchmark tasks are implemented in `tasks/tasks.py`:
+
+- `task_easy()`
+- `task_medium()`
+- `task_hard()`
+
+Each task:
+
+- uses fixed initial conditions
+- runs the strict policy baseline
+- computes a deterministic normalized score in `[0.0, 1.0]`
+
+Scoring logic:
+
+- Easy: `score = total_health / (steps * 100)`
+- Medium: `score = efficiency_score / steps`
+- Hard: `score = final_growth_stage / 5`
+
+All task scores are clamped to `[0.0, 1.0]`.
+
+## Baseline Scores
+
+From `python run_baseline.py`:
+
+- Easy Score: `0.9156`
+- Medium Score: `1.0000`
+- Hard Score: `0.0000`
+- Average Score: `0.6385`
+
+These values are reproducible and identical across repeated runs.
+
+Example JSON output:
+
+```json
+{
+	"easy": 0.9156,
+	"medium": 1.0,
+	"hard": 0.0,
+	"average": 0.6385
+}
 ```
 
-## Visualize In Streamlit
+## Determinism Guarantee
+
+- Task rollouts are fully deterministic.
+- Policy decisions are deterministic and constrained to actions `{0, 1, 2}`.
+- Baseline runs produce identical results for identical inputs.
+- Determinism verifier runs the baseline scoring twice and fails if any value differs.
+
+## How to Run
+
+Install dependencies:
 
 ```powershell
-.\.venv\Scripts\python -m streamlit run ui\streamlit_app.py
+python -m pip install -r requirements.txt
 ```
 
-The dashboard lets you train an agent, step the simulation day by day, and watch growth, health, water, nutrient, and reward trends update live.
-
-## Baseline Benchmark
+Run deterministic baseline evaluation:
 
 ```powershell
-.\.venv\Scripts\python baseline_inference.py
+python run_baseline.py
 ```
 
-## Tests
+Run determinism verification:
 
 ```powershell
-.\.venv\Scripts\python -m pytest -q
+python verify_determinism.py
 ```
 
-## Docker
-
-Build the image:
+Run tests:
 
 ```powershell
-docker build -t smartgrow-ai .
+python -m pytest -q
 ```
 
-Run the default CLI entrypoint:
+Use the strict JSON CLI:
 
 ```powershell
-docker run --rm smartgrow-ai
+echo {"water_level":42,"sunlight":43,"plant_health":80,"growth_stage":2} | python cli.py
 ```
+
+## Real-world Impact
+
+- Demonstrates explainable control for urban micro-farming and vertical gardening.
+- Supports low-cost automation where deterministic behavior is required.
+- Provides reproducible benchmarking for policy comparisons in hackathon evaluation.
