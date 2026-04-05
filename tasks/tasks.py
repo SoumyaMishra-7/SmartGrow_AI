@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
+from typing import Iterable
 
+from env.spec_env import Action, SpecPlantEnv
+from strict_policy_agent import get_action
 from tasks.scenarios import DEFAULT_SCENARIO, SCENARIOS
 from utils.helpers import clamp
 
@@ -127,3 +130,67 @@ def get_task_config(name: str) -> dict:
 def grade_task(task_name: str, outcome: EpisodeOutcome) -> float:
     grader = TASK_GRADERS[task_name]
     return round(grader(outcome), 4)
+
+
+def _run_deterministic_episode(initial_state: dict[str, int], max_steps: int) -> tuple[list[dict[str, int]], int]:
+    env = SpecPlantEnv(initial_state=initial_state, max_steps=max_steps)
+    obs = env.reset()
+    trajectory: list[dict[str, int]] = [obs.dict()]
+    action_count = 0
+
+    while True:
+        action_dict = get_action(obs.dict())
+        action = Action(action=action_dict["action"])
+        if action.action != 0:
+            action_count += 1
+        obs, _, done, _ = env.step(action)
+        trajectory.append(obs.dict())
+        if done:
+            break
+
+    return trajectory, action_count
+
+
+def _average(values: Iterable[int]) -> float:
+    values_list = list(values)
+    return float(sum(values_list) / len(values_list)) if values_list else 0.0
+
+
+def _clamp_score(score: float) -> float:
+    return round(clamp(score, 0.0, 1.0), 4)
+
+
+def task_easy() -> float:
+    initial = {"water_level": 58, "sunlight": 56, "plant_health": 84, "growth_stage": 1}
+    max_steps = 16
+    trajectory, _ = _run_deterministic_episode(initial_state=initial, max_steps=max_steps)
+
+    steps = max(1, len(trajectory) - 1)
+    total_health = sum(step["plant_health"] for step in trajectory[1:])
+    score = total_health / (steps * 100.0)
+    return _clamp_score(score)
+
+
+def task_medium() -> float:
+    initial = {"water_level": 44, "sunlight": 48, "plant_health": 74, "growth_stage": 1}
+    max_steps = 20
+    trajectory, _ = _run_deterministic_episode(initial_state=initial, max_steps=max_steps)
+
+    steps = max(1, len(trajectory) - 1)
+    efficiency_score = sum(
+        1
+        for step in trajectory[1:]
+        if 40 <= step["water_level"] <= 70 and 40 <= step["sunlight"] <= 70
+    )
+    score = efficiency_score / steps
+    return _clamp_score(score)
+
+
+def task_hard() -> float:
+    initial = {"water_level": 38, "sunlight": 42, "plant_health": 66, "growth_stage": 0}
+    max_steps = 24
+    trajectory, _ = _run_deterministic_episode(initial_state=initial, max_steps=max_steps)
+
+    final_growth_stage = trajectory[-1]["growth_stage"]
+    score = final_growth_stage / 5.0
+    return _clamp_score(score)
