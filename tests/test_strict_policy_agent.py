@@ -46,6 +46,16 @@ def test_stable_range_no_action() -> None:
     assert result["action"] == 0
 
 
+def test_buffer_zone_prefers_no_action() -> None:
+    result = decide_action({"water_level": 49, "sunlight": 58, "plant_health": 90, "growth_stage": 3})
+    assert result["action"] == 0
+
+
+def test_deterministic_tie_break_for_equal_low_resources() -> None:
+    result = decide_action({"water_level": 44, "sunlight": 44, "plant_health": 80, "growth_stage": 2})
+    assert result["action"] == 1
+
+
 def test_avoid_overwatering_when_water_high() -> None:
     result = decide_action({"water_level": 80, "sunlight": 55, "plant_health": 88, "growth_stage": 3})
     assert result["action"] != 1

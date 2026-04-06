@@ -17,38 +17,61 @@ class StrictPolicyAgent:
     0 = do nothing, 1 = add water, 2 = increase sunlight.
     """
 
+    STABLE_MIN = 45
+    STABLE_MAX = 65
+    CRITICAL_MIN = 40
+    DECAY_PER_STEP = 5
+
+    @staticmethod
+    def _payload(action: int, reason: str) -> dict[str, int | str]:
+        return {"action": action, "reason": reason}
+
+    @staticmethod
+    def _projected_after_decay(value: int) -> int:
+        return value - StrictPolicyAgent.DECAY_PER_STEP
+
+    @staticmethod
+    def _urgency(value: int) -> int:
+        if value < StrictPolicyAgent.CRITICAL_MIN:
+            return 2
+        if value < StrictPolicyAgent.STABLE_MIN:
+            return 1
+        return 0
+
+    @staticmethod
+    def _tie_break(state: PlantState) -> int:
+        return 1 if state.growth_stage % 2 == 0 else 2
+
     def decide(self, state: PlantState) -> dict[str, int | str]:
         water = state.water_level
         sunlight = state.sunlight
+        projected_water = self._projected_after_decay(water)
+        projected_sunlight = self._projected_after_decay(sunlight)
 
-        # 1) Critical safety checks.
-        if water < 40:
-            return {"action": 1, "reason": "Water is below optimal threshold"}
-        if sunlight < 40:
-            return {"action": 2, "reason": "Sunlight is below optimal threshold"}
+        # 1) Stability zone: if both resources are already comfortable, conserve action.
+        if self.STABLE_MIN <= water <= self.STABLE_MAX and self.STABLE_MIN <= sunlight <= self.STABLE_MAX:
+            return self._payload(0, "Both resources are in the stability band")
 
-        # 2) Future-aware checks: prevent next-step decay from crossing below optimal.
-        if water - 5 < 40 and sunlight - 5 < 40:
-            if water <= sunlight:
-                return {"action": 1, "reason": "Water will drop below optimal next step"}
-            return {"action": 2, "reason": "Sunlight will drop below optimal next step"}
-        if water - 5 < 40:
-            return {"action": 1, "reason": "Water will drop below optimal next step"}
-        if sunlight - 5 < 40:
-            return {"action": 2, "reason": "Sunlight will drop below optimal next step"}
+        # 2) Safety guard: never let either resource enter the critical band.
+        water_urgency = self._urgency(water)
+        sunlight_urgency = self._urgency(sunlight)
 
-        # 4) Stable state takes precedence when both are comfortably optimal.
-        if 45 <= water <= 65 and 45 <= sunlight <= 65:
-            return {"action": 0, "reason": "Both water and sunlight are in optimal range"}
+        if water_urgency == 0 and sunlight_urgency == 0:
+            if water > 70 and sunlight > 70:
+                return self._payload(0, "Both resources are above the upper bound")
+            return self._payload(0, "No urgent correction needed")
 
-        # 3) Avoid overcorrection if a resource is already above the safe upper bound.
-        if water > 70 and sunlight <= 70:
-            return {"action": 2, "reason": "Water is high, balancing with sunlight support"}
-        if sunlight > 70 and water <= 70:
-            return {"action": 1, "reason": "Sunlight is high, balancing with water support"}
+        if water_urgency > sunlight_urgency:
+            reason = "Water is below the critical threshold" if water < self.CRITICAL_MIN else "Water will drop below critical next step"
+            return self._payload(1, reason)
+        if sunlight_urgency > water_urgency:
+            reason = "Sunlight is below the critical threshold" if sunlight < self.CRITICAL_MIN else "Sunlight will drop below critical next step"
+            return self._payload(2, reason)
 
-        # 5) Default to efficient stability when no immediate correction is needed.
-        return {"action": 0, "reason": "No immediate correction needed; conserving resources"}
+        # 3) Tie-break deterministically when both resources are equally urgent.
+        if projected_water != projected_sunlight:
+            return self._payload(1 if projected_water < projected_sunlight else 2, "Choose the lower projected resource")
+        return self._payload(self._tie_break(state), "Tie broken deterministically to preserve balance")
 
 
 def decide_action(state: dict[str, int]) -> dict[str, int | str]:
