@@ -28,9 +28,10 @@ def _deterministic_action(obs: Observation) -> int:
 
 def run_inference(config: InferenceConfig) -> None:
     base_url = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
+    api_key = os.getenv("HF_TOKEN")
 
     # The client is created to ensure inference wiring is OpenAI-client based.
-    _client = OpenAI(base_url=base_url)
+    _client = OpenAI(base_url=base_url, api_key=api_key)
 
     env = SpecPlantEnv(max_steps=config.max_steps)
     obs = env.reset()
