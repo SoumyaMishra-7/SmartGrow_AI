@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import argparse
 import os
+import sys
 from dataclasses import dataclass
 
+import gradio as gr
 from openai import OpenAI
 
 from env.spec_env import Observation, SpecPlantEnv
@@ -17,18 +19,23 @@ class InferenceConfig:
 
 
 def _deterministic_action(obs: Observation) -> int:
-    """Simple stable policy: refill the weaker resource only when below target band."""
-    target_min = 45
-    if obs.water_level < target_min and obs.water_level <= obs.sunlight:
+    """Deterministic policy tuned for SpecPlantEnv growth under short horizons."""
+    # Preserve both resources above the decay floor; acting at 45 avoids dropping out of the optimal band.
+    if obs.water_level >= 46 and obs.sunlight >= 46:
+        return 0
+
+    if obs.water_level < obs.sunlight:
         return 1
-    if obs.sunlight < target_min and obs.sunlight < obs.water_level:
+    if obs.sunlight < obs.water_level:
         return 2
-    return 0
+
+    # Deterministic tie-break keeps behavior reproducible.
+    return 1 if obs.growth_stage % 2 == 0 else 2
 
 
 def run_inference(config: InferenceConfig) -> None:
     base_url = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
-    api_key = os.getenv("HF_TOKEN")
+    api_key = os.getenv("OPENAI_API_KEY") or os.getenv("HF_TOKEN")
 
     # The client is created to ensure inference wiring is OpenAI-client based.
     _client = OpenAI(base_url=base_url, api_key=api_key)
@@ -68,10 +75,15 @@ def main() -> None:
     run_inference(config)
 
 
+def run_app() -> str:
+    config = InferenceConfig()
+    run_inference(config)
+    return "Inference completed successfully!"
+
+
 if __name__ == "__main__":
-    main()
-
-    import time
-
-    while True:
-        time.sleep(60)
+    gr.Interface(
+        fn=run_app,
+        inputs=[],
+        outputs="text"
+    ).launch(server_name="0.0.0.0", server_port=7860)

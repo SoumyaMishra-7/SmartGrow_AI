@@ -6,3 +6,4 @@ numpy>=1.26
 pytest>=8.0
 PyYAML>=6.0
 streamlit>=1.33
+gradio
