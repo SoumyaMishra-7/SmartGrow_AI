@@ -44,6 +44,27 @@ class GardenState:
             bucket(self.energy_reserve),
         )
 
+    def observation_dict(self) -> dict[str, float | int | str]:
+        weather_band = "sunny"
+        if self.light < 0.4:
+            weather_band = "cloudy"
+        elif self.humidity > 0.8:
+            weather_band = "humid"
+
+        return {
+            "day": self.day,
+            "plant_health": round(self.health, 3),
+            "soil_moisture": round(self.soil_moisture, 3),
+            "nutrient_level": round(self.nutrients, 3),
+            "temperature_c": round(self.temperature, 2),
+            "humidity": round(self.humidity, 3),
+            "weather": weather_band,
+            "water_remaining_ml": int(self.water_tank * 1000),
+            "nutrients_remaining_ml": int(self.nutrient_tank * 1000),
+            "energy_budget_wh": int(self.energy_reserve * 1000),
+            "growth_index": round(self.growth, 3),
+        }
+
 
 def bucket(value: float, bins: int = 5) -> int:
     scaled = clamp(value, 0.0, 0.999999)

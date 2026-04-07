@@ -4,13 +4,17 @@ from env.smart_env import SmartGrowEnv
 def test_environment_step_returns_expected_shape() -> None:
     env = SmartGrowEnv(seed=3)
     observation, _ = env.reset()
-    assert len(observation) == 8
+    assert isinstance(observation, dict)
+    assert "soil_moisture" in observation
+    assert "water_remaining_ml" in observation
 
     step = env.step(1)
-    assert isinstance(step.observation, tuple)
+    assert isinstance(step.observation, dict)
     assert isinstance(step.reward, float)
     assert "growth" in step.info
     assert "energy_reserve" in step.info
+    assert "decision" in step.info
+    assert "reasoning" in step.info
 
 
 def test_environment_terminates_within_max_days() -> None:

@@ -1,15 +1,18 @@
 {
-  "name": "SmartGrowEnv",
-  "description": "Plant growth simulator with discrete care actions and compact bucketed observations.",
+  "name": "UrbanMicroFarmAssistantEnv",
+  "description": "AI assistant environment for urban micro-farm management under resource constraints.",
   "observation_fields": [
+    "day",
+    "plant_health",
     "soil_moisture",
-    "nutrients",
-    "temperature",
+    "nutrient_level",
+    "temperature_c",
     "humidity",
-    "light",
-    "growth",
-    "health",
-    "energy_reserve"
+    "weather",
+    "water_remaining_ml",
+    "nutrients_remaining_ml",
+    "energy_budget_wh",
+    "growth_index"
   ],
   "action_count": 8,
   "termination": {

@@ -14,13 +14,21 @@ class ActionEffect:
     energy_delta: float = 0.0
 
 
+@dataclass(frozen=True, slots=True)
+class ManagementAction:
+    water_ml: int = 0
+    sunlight_adjustment: str = "maintain"
+    nutrients: str = "hold"
+    energy_mode: str = "normal"
+
+
 @dataclass(slots=True)
 class StepResult:
-    observation: tuple[int, ...]
+    observation: tuple[int, ...] | Dict[str, float | int | str]
     reward: float
     terminated: bool
     truncated: bool
-    info: Dict[str, float | int | str]
+    info: Dict[str, float | int | str | bool]
 
 
 @dataclass(slots=True)
@@ -55,16 +63,16 @@ class OpenEnvStateModel:
 
 @dataclass(frozen=True, slots=True)
 class OpenEnvResetModel:
-    observation: tuple[int, ...]
-    info: Dict[str, str | int | float]
+    observation: tuple[int, ...] | Dict[str, float | int | str]
+    info: Dict[str, str | int | float | bool]
     state: OpenEnvStateModel
 
 
 @dataclass(frozen=True, slots=True)
 class OpenEnvStepModel:
-    observation: tuple[int, ...]
+    observation: tuple[int, ...] | Dict[str, float | int | str]
     reward: float
     terminated: bool
     truncated: bool
-    info: Dict[str, str | int | float]
+    info: Dict[str, str | int | float | bool | dict]
     state: OpenEnvStateModel

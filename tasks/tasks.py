@@ -4,8 +4,9 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Iterable
 
+from agent.strict_policy_agent import get_action
 from env.spec_env import Action, SpecPlantEnv
-from strict_policy_agent import get_action
+from models import InternalState
 from tasks.scenarios import DEFAULT_SCENARIO, SCENARIOS
 from utils.helpers import clamp
 
@@ -193,4 +194,41 @@ def task_hard() -> float:
 
     final_growth_stage = trajectory[-1]["growth_stage"]
     score = final_growth_stage / 5.0
+    return _clamp_score(score)
+
+
+def grade_easy(state: InternalState) -> float:
+    score = (
+        state.average_health * 0.50
+        + state.average_growth * 0.30
+        + clamp(state.water_remaining / 1000.0, 0.0, 1.0) * 0.10
+        + clamp(state.energy_budget / 1000.0, 0.0, 1.0) * 0.10
+    )
+    return _clamp_score(score)
+
+
+def grade_medium(state: InternalState) -> float:
+    multi_plant_stability = sum(plant.health for plant in state.plants) / max(1, len(state.plants))
+    score = (
+        clamp(state.average_growth / 1.2, 0.0, 1.0) * 0.35
+        + state.average_health * 0.30
+        + clamp(multi_plant_stability, 0.0, 1.0) * 0.20
+        + clamp((state.water_remaining + state.energy_budget) / 2000.0, 0.0, 1.0) * 0.15
+    )
+    return _clamp_score(score)
+
+
+def grade_hard(state: InternalState) -> float:
+    resource_efficiency = clamp(
+        (state.water_remaining + state.nutrient_remaining + state.energy_budget) / 3000.0,
+        0.0,
+        1.0,
+    )
+    plant_resilience = sum(min(1.0, plant.health + (plant.growth / 1.5) * 0.5) for plant in state.plants) / max(1, len(state.plants))
+    score = (
+        clamp(state.average_growth / 1.2, 0.0, 1.0) * 0.30
+        + state.average_health * 0.25
+        + clamp(plant_resilience, 0.0, 1.0) * 0.25
+        + resource_efficiency * 0.20
+    )
     return _clamp_score(score)

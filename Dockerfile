@@ -1,11 +1,10 @@
-FROM python:3.10-slim
+FROM python:3.10
 
 WORKDIR /app
-
 COPY . .
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
-ENV PYTHONUNBUFFERED=1
+EXPOSE 7860
 
-CMD ["python", "inference.py"]
+CMD ["streamlit", "run", "app.py", "--server.port=7860", "--server.address=0.0.0.0"]

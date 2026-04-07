@@ -3,8 +3,9 @@ from __future__ import annotations
 from dataclasses import asdict
 import json
 from pathlib import Path
+from typing import Any
 
-from env.models import OpenEnvActionModel, OpenEnvResetModel, OpenEnvStateModel, OpenEnvStepModel
+from env.models import ManagementAction, OpenEnvActionModel, OpenEnvResetModel, OpenEnvStateModel, OpenEnvStepModel
 from env.resource import ACTIONS
 from env.smart_env import SmartGrowEnv
 
@@ -52,8 +53,8 @@ class OpenEnvAdapter:
         observation, info = self._env.reset(seed=seed)
         return OpenEnvResetModel(observation=observation, info=info, state=self.state())
 
-    def step(self, action_id: int) -> OpenEnvStepModel:
-        result = self._env.step(action_id)
+    def step(self, action: int | dict[str, Any] | ManagementAction) -> OpenEnvStepModel:
+        result = self._env.step(action)
         return OpenEnvStepModel(
             observation=result.observation,
             reward=result.reward,

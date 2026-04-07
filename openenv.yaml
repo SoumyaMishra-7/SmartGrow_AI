@@ -1,0 +1,11 @@
+name: urban_micro_farm_env
+description: AI assistant for urban micro-farm management under constraints
+tasks:
+  - easy
+  - medium
+  - hard
+observation_space:
+  type: object
+action_space:
+  type: object
+reward_range: [0, 1]
