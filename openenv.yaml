@@ -1,5 +1,5 @@
 name: urban_micro_farm_env
-description: AI assistant for urban micro-farm management under constraints
+description: AI assistant for urban micro-farm management
 tasks:
   - easy
   - medium

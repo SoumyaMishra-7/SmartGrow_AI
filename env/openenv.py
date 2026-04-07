@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import asdict
-import json
 from pathlib import Path
 from typing import Any
+
+import yaml
 
 from env.models import ManagementAction, OpenEnvActionModel, OpenEnvResetModel, OpenEnvStateModel, OpenEnvStepModel
 from env.resource import ACTIONS
@@ -15,7 +16,7 @@ OPEN_ENV_SPEC_PATH = Path(__file__).resolve().parents[1] / "config" / "openenv.y
 def _load_openenv_spec() -> dict:
     if not OPEN_ENV_SPEC_PATH.exists():
         raise FileNotFoundError(f"Missing OpenEnv spec file: {OPEN_ENV_SPEC_PATH}")
-    spec = json.loads(OPEN_ENV_SPEC_PATH.read_text(encoding="utf-8"))
+    spec = yaml.safe_load(OPEN_ENV_SPEC_PATH.read_text(encoding="utf-8"))
     spec["action_count"] = len(ACTIONS)
     return spec
 

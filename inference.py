@@ -16,13 +16,13 @@ try:
 except ImportError:  # pragma: no cover - depends on runtime environment
     OpenAI = None  # type: ignore[assignment]
 
+from env.grader import grade_easy, grade_hard, grade_medium
+from env.models import Action, InternalState, Observation
 from microfarm_env import MicroFarmEnv
-from models import Action, InternalState, Observation
-from tasks.tasks import grade_easy, grade_hard, grade_medium
 
 
 TASKS = ("easy", "medium", "hard")
-ENV_NAME = "MicroFarmEnv"
+ENV_NAME = "urban_micro_farm"
 
 
 @dataclass(frozen=True)
@@ -47,21 +47,27 @@ def _format_error(error: str | None) -> str:
 
 
 def _compact_rewards(rewards: list[float]) -> str:
-    return "[" + ",".join(f"{reward:.2f}" for reward in rewards) + "]"
+    return ",".join(f"{reward:.2f}" for reward in rewards)
 
 
-def _build_prompt(task_name: str, observation: Observation, state: InternalState) -> str:
-    return (
-        "You are controlling an urban micro-farm.\n"
-        f"Task: {task_name}\n"
-        "Return only JSON with keys water_ml, sunlight_adjustment, nutrients, energy_mode.\n"
-        "Choose one of sunlight_adjustment: increase/decrease/maintain.\n"
-        "Choose one of nutrients: add/none.\n"
-        "Choose one of energy_mode: low/normal/high.\n"
-        f"Observation: {observation.model_dump_json()}\n"
-        f"State: {state.model_dump_json()}\n"
-        "Prefer healthy plants, efficient resource use, and stable control."
-    )
+def _build_messages(task_name: str, observation: Observation, state: InternalState) -> list[dict[str, str]]:
+    reward_payload = state.last_reward.model_dump() if state.last_reward is not None else {"value": 0.0, "reason": "none"}
+    return [
+        {
+            "role": "system",
+            "content": "You are an AI assistant managing an urban micro-farm. Optimize plant health while minimizing resource usage.",
+        },
+        {
+            "role": "user",
+            "content": (
+                f"task={task_name}\n"
+                f"step={observation.step}\n"
+                f"observation={observation.model_dump_json()}\n"
+                f"last_reward={json.dumps(reward_payload, separators=(',', ':'))}\n"
+                "Return only valid JSON with keys water_ml, sunlight_adjustment, nutrients, energy_mode."
+            ),
+        },
+    ]
 
 
 def _fallback_action(observation: Observation, task_name: str) -> Action:
@@ -109,7 +115,7 @@ def _extract_response_text(response: Any) -> str:
 def _llm_action(client: OpenAI, model_name: str, task_name: str, observation: Observation, state: InternalState) -> Action:
     response = client.responses.create(
         model=model_name,
-        input=_build_prompt(task_name, observation, state),
+        input=_build_messages(task_name, observation, state),
         temperature=0,
     )
     content = _extract_response_text(response)

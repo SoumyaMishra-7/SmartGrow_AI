@@ -5,11 +5,11 @@ from copy import deepcopy
 from dataclasses import dataclass, replace
 from typing import Any
 
+from env.models import Action, InternalState, Observation, PlantSnapshot, Reward
 from env.plant import update_plant_state
 from env.reward import calculate_reward
 from env.state import GardenState
 from env.weather import generate_weather
-from models import Action, InternalState, Observation, PlantSnapshot, Reward
 from tasks.scenarios import SCENARIOS
 from utils.helpers import clamp
 

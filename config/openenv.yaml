@@ -1,23 +1,11 @@
-{
-  "name": "UrbanMicroFarmAssistantEnv",
-  "description": "AI assistant environment for urban micro-farm management under resource constraints.",
-  "observation_fields": [
-    "day",
-    "plant_health",
-    "soil_moisture",
-    "nutrient_level",
-    "temperature_c",
-    "humidity",
-    "weather",
-    "water_remaining_ml",
-    "nutrients_remaining_ml",
-    "energy_budget_wh",
-    "growth_index"
-  ],
-  "action_count": 8,
-  "termination": {
-    "max_days_reached": true,
-    "harvest_ready_growth": 1.0,
-    "health_floor": 0.15
-  }
-}
+name: urban_micro_farm_env
+description: AI assistant for urban micro-farm management
+tasks:
+  - easy
+  - medium
+  - hard
+observation_space:
+  type: object
+action_space:
+  type: object
+reward_range: [0, 1]
